@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { GitSearchService } from '../git-search.service';
 import { GitSearch } from '../git-search';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
-import { FormControl, FormGroup } from '@angular/forms';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
 
 import { AdvancedSearchModel } from '../advanced-search-model';
 
@@ -25,8 +25,20 @@ export class GitSearchComponent implements OnInit {
     private GitSearchService1: GitSearchService,
     private route: ActivatedRoute,
     private router: Router) {
+
     this.modelKeys.forEach((key) => {
-      this.formControls[key] = new FormControl();
+      let validators = [];
+
+      if (key === 'q') {
+        validators.push(Validators.required);
+      }
+      if (key === 'stars') {
+        validators.push(Validators.maxLength(4));
+      }
+
+      validators.push(this.noSpecialChars);
+
+      this.formControls[key] = new FormControl(this.model[key], validators);
     });
 
     this.form = new FormGroup(this.formControls);
@@ -34,6 +46,16 @@ export class GitSearchComponent implements OnInit {
 
   model = new AdvancedSearchModel('', '', '', null, null, '');
   modelKeys = Object.keys(this.model);
+  noSpecialChars(c: FormControl) {
+    let REGEXP = new RegExp(/[~`!#$%\^&*+=\-\[\]\\';,/{}|\\":<>\?]/);
+
+    return REGEXP.test(c.value) ? {
+      validateEmail: {
+        valid: false
+      }
+    } : null;
+
+  }
 
   ngOnInit() {
     this.route.paramMap.subscribe((params: ParamMap) => {
@@ -57,7 +79,7 @@ export class GitSearchComponent implements OnInit {
 
   sendQuery = () => {
     this.searchResults = null;
-    let search : string = this.form.value['q'];
+    let search: string = this.form.value['q'];
     let params = '';
     this.modelKeys.forEach((elem) => {
       if (elem === 'q') {
